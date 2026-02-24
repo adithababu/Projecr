@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple Weather App</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to right, #4facfe, #00f2fe);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .app {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      width: 320px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+
+    input {
+      padding: 8px;
+      width: 70%;
+      margin-right: 5px;
+    }
+
+    button {
+      padding: 8px;
+      cursor: pointer;
+    }
+
+    .weather-card {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      background: #f4f4f4;
+    }
+
+    .recent {
+      margin-top: 15px;
+      text-align: left;
+    }
+
+    .recent span {
+      cursor: pointer;
+      color: blue;
+      display: block;
+    }
+
+    .error {
+      color: red;
+      margin-top: 10px;
+    }
+
+    .loading {
+      margin-top: 10px;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    function WeatherApp() {
+
+      const API_KEY = "8052e25b84e527605e33e983964debc0";
+
+      const [cityInput, setCityInput] = React.useState("");
+      const [city, setCity] = React.useState("");
+      const [temperature, setTemperature] = React.useState(null);
+      const [condition, setCondition] = React.useState("");
+      const [loading, setLoading] = React.useState(false);
+      const [error, setError] = React.useState("");
+      const [unit, setUnit] = React.useState("C");
+      const [recentCities, setRecentCities] = React.useState(
+        JSON.parse(localStorage.getItem("recentCities")) || []
+      );
+
+      const fetchWeather = async (searchCity) => {
+        if (!searchCity) return;
+
+        setLoading(true);
+        setError("");
+
+        try {
+          const response = await fetch(
+            `${BASE_URL}/forecast.json?key=${API_KEY}&q=${query}&days=5&aqi=yes&alerts=yes`
+          );
+
+          if (!response.ok) {
+            throw new Error("City not found");
+          }
+
+          const data = await response.json();
+
+          setCity(data.name);
+          setTemperature(data.main.temp);
+          setCondition(data.weather[0].main);
+
+          updateRecentCities(data.name);
+
+        } catch (err) {
+          setError("City not found!");
+        }
+
+        setLoading(false);
+      };
+
+      const updateRecentCities = (newCity) => {
+        let updated = [newCity, ...recentCities.filter(c => c !== newCity)];
+        updated = updated.slice(0, 3);
+        setRecentCities(updated);
+        localStorage.setItem("recentCities", JSON.stringify(updated));
+      };
+
+      const toggleUnit = () => {
+        if (temperature === null) return;
+
+        if (unit === "C") {
+          setTemperature((temperature * 9/5) + 32);
+          setUnit("F");
+        } else {
+          setTemperature((temperature - 32) * 5/9);
+          setUnit("C");
+        }
+      };
+
+      return (
+        <div className="app">
+          <h2>Weather App</h2>
+
+          <div>
+            <input
+              type="text"
+              placeholder="Enter city"
+              value={cityInput}
+              onChange={(e) => setCityInput(e.target.value)}
+            />
+            <button onClick={() => fetchWeather(cityInput)}>Search</button>
+          </div>
+
+          {loading && <div className="loading">Loading...</div>}
+          {error && <div className="error">{error}</div>}
+
+          {temperature !== null && !loading && (
+            <div className="weather-card">
+              <h3>{city}</h3>
+              <p>{temperature.toFixed(1)} °{unit}</p>
+              <p>{condition}</p>
+              <button onClick={toggleUnit}>Toggle °C / °F</button>
+            </div>
+          )}
+
+          {recentCities.length > 0 && (
+            <div className="recent">
+              <strong>Recent Searches:</strong>
+              {recentCities.map((c, index) => (
+                <span key={index} onClick={() => fetchWeather(c)}>
+                  {c}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<WeatherApp />);
+  </script>
+</body>
+</html>
