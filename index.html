@@ -92,7 +92,7 @@
 
         try {
           const response = await fetch(
-            `${BASE_URL}/forecast.json?key=${API_KEY}&q=${query}&days=5&aqi=yes&alerts=yes`
+            `https://api.openweathermap.org/data/2.5/weather?q=${searchCity}&appid=${API_KEY}&units=metric`
           );
 
           if (!response.ok) {
